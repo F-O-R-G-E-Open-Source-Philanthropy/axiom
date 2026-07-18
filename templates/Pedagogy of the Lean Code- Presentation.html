@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pedagogy of the Lean Code - IP Summit 2026</title>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            bg: '#0a0a0c',        
+                            panel: '#15151a',     
+                            amber: '#f59e0b',     
+                            purple: '#7c3aed',    
+                            darkPurple: '#4C1D95',
+                            text: '#f8fafc',
+                            muted: '#94a3b8'
+                        }
+                    },
+                    fontFamily: { 
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                        display: ['Josefin Sans', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Responsive Reset */
+        body { 
+            background-color: #0a0a0c; 
+            color: #f8fafc; 
+            margin: 0; 
+            overflow: hidden; 
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        /* Abstract Procedural Background Grid */
+        .bg-grid {
+            background-image: 
+                linear-gradient(rgba(124, 58, 237, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(124, 58, 237, 0.05) 1px, transparent 1px);
+            background-size: 50px 50px;
+            position: absolute;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* Slide Container adapted for ALL screen sizes */
+        .slide { 
+            display: none; 
+            height: 100vh; 
+            width: 100vw; 
+            position: absolute; 
+            top: 0; left: 0;
+            z-index: 1;
+            padding: 3rem 2rem;
+            box-sizing: border-box;
+            overflow-y: auto;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .slide::-webkit-scrollbar { display: none; }
+        
+        .slide.active { 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center;
+            z-index: 10;
+        }
+        @media (min-width: 768px) {
+            .slide.active { padding: 4rem 4rem; }
+        }
+
+        /* Premium Glassmorphism */
+        .glass {
+            background: rgba(21, 21, 26, 0.6);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Core Animations */
+        @keyframes fadeInUp { 
+            from { opacity: 0; transform: translateY(40px) scale(0.98); filter: blur(5px); } 
+            to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); } 
+        }
+
+        .slide .anim-el { opacity: 0; will-change: transform, opacity, filter; }
+        .slide.active .anim-el { animation: fadeInUp 1s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        
+        .delay-100 { animation-delay: 0.1s !important; }
+        .delay-200 { animation-delay: 0.25s !important; }
+        .delay-300 { animation-delay: 0.4s !important; }
+        .delay-400 { animation-delay: 0.55s !important; }
+
+        /* Typography Highlights */
+        .text-gradient {
+            background: linear-gradient(135deg, #c084fc 0%, #7c3aed 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .text-gradient-amber {
+            background: linear-gradient(135deg, #fcd34d 0%, #f59e0b 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Progress & Navigation */
+        .progress-container {
+            position: fixed; top: 0; left: 0; right: 0; height: 4px;
+            background: rgba(255,255,255,0.05); z-index: 50;
+        }
+        .progress-bar {
+            height: 100%; background: linear-gradient(90deg, #7c3aed, #f59e0b);
+            width: 0%; transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        /* Fullscreen Button */
+        #fs-btn {
+            position: fixed; top: 20px; right: 20px; z-index: 100;
+            transition: all 0.3s ease;
+        }
+        .theater-mode #fs-btn { opacity: 0.2; }
+        .theater-mode #fs-btn:hover { opacity: 1; }
+        .theater-mode .nav-controls { opacity: 0.1; transition: opacity 0.3s; }
+        .theater-mode .nav-controls:hover { opacity: 1; }
+
+        /* Highlight box */
+        .highlight-box {
+            position: relative; overflow: hidden; transition: transform 0.3s ease;
+        }
+        .highlight-box:hover { transform: translateY(-5px); }
+        .highlight-box::before {
+            content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%;
+            background: #7c3aed; box-shadow: 0 0 15px #7c3aed;
+        }
+        
+        /* Specific layout for the stats block */
+        .stat-block {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-left: 2px solid rgba(255,255,255,0.1);
+            padding-left: 1rem;
+            margin-top: 1rem;
+        }
+        .stat-number {
+            font-family: 'Josefin Sans', sans-serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #f59e0b;
+            line-height: 1;
+        }
+        .stat-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #94a3b8;
+            margin-top: 0.25rem;
+            text-align: center;
+        }
+        .chart-container {
+            position: relative;
+            height: 140px; 
+            width: 100%;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Controls -->
+    <button id="fs-btn" onclick="toggleFullScreen()" class="glass px-5 py-2.5 rounded-xl shadow-lg transition-all hover:bg-white/5 flex items-center gap-3 text-xs font-bold text-brand-text border border-white/10 group">
+        <i class="fa-solid fa-expand text-brand-amber group-hover:scale-110 transition-transform" id="fs-icon"></i> 
+        <span id="fs-text" class="tracking-widest uppercase">Theater Mode</span>
+    </button>
+
+    <div class="fixed bottom-6 left-6 z-50 glass px-6 py-3 rounded-full text-xs font-bold tracking-widest text-brand-muted shadow-lg border border-white/5">
+        <span class="text-brand-purple"><span id="current-slide-num">1</span></span> / <span id="total-slides">11</span>
+    </div>
+
+    <div class="nav-controls fixed bottom-6 right-6 flex gap-3 z-50">
+        <button onclick="prevSlide()" class="glass text-brand-text w-12 h-12 rounded-full shadow-lg hover:bg-white/10 transition-all border border-white/10 flex items-center justify-center">
+            <i class="fa-solid fa-chevron-left"></i>
+        </button>
+        <button onclick="nextSlide()" class="bg-brand-purple text-white w-12 h-12 rounded-full shadow-[0_0_20px_rgba(124,58,237,0.4)] hover:bg-brand-darkPurple transition-all font-bold flex items-center justify-center">
+            <i class="fa-solid fa-chevron-right"></i>
+        </button>
+    </div>
+
+    <div class="progress-container"><div id="progress" class="progress-bar"></div></div>
+
+    <!-- Presentation Canvas -->
+    <div id="presentation" class="relative w-full h-full">
+        <div class="bg-grid"></div>
+
+        <!-- Slide 1: Title -->
+        <section class="slide active items-center text-center">
+            <div class="max-w-5xl relative z-10 w-full mx-auto my-auto">
+                <div class="anim-el inline-flex items-center gap-3 px-6 py-2 rounded-full glass border border-brand-purple/30 text-brand-purple text-xs font-bold tracking-[0.3em] uppercase mb-8">
+                    <i class="fa-solid fa-microchip"></i> IP Summit 2026 • Education & Learning Innovation
+                </div>
+                
+                <h1 class="anim-el delay-100 font-display text-6xl md:text-8xl font-bold leading-none mb-6 tracking-tight text-white">
+                    Pedagogy of the <br><span class="text-gradient">Lean Code</span>
+                </h1>
+                
+                <p class="anim-el delay-200 text-2xl text-brand-amber font-light tracking-wide mb-12 max-w-3xl mx-auto">
+                    High-Fidelity AI on a Global South Budget.
+                </p>
+
+                <div class="anim-el delay-300 glass inline-flex flex-col items-center px-12 py-6 rounded-3xl border border-white/10 mx-auto shadow-2xl">
+                    <span class="text-[10px] uppercase tracking-widest text-brand-muted font-bold mb-2">Presented By</span>
+                    <h3 class="text-xl font-bold text-white">Cleon Williams</h3>
+                    <p class="text-xs text-brand-purple font-bold tracking-widest uppercase mt-1">Final Render Animation Studio</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Slide 2: The Architect -->
+        <section class="slide">
+            <div class="max-w-7xl mx-auto w-full grid grid-cols-1 md:grid-cols-12 gap-12 items-center h-full">
+                <div class="col-span-1 md:col-span-5 anim-el flex flex-col items-center">
+                    <div class="relative w-full aspect-square max-w-md rounded-[3rem] overflow-hidden border border-brand-purple/30 shadow-[0_0_40px_rgba(124,58,237,0.15)] group">
+                        <img src="https://github.com/Cleo876/build5e-schools/blob/main/image_2026-01-12_215558291.png?raw=true" alt="Cleon Williams" class="w-full h-full object-cover filter contrast-110 group-hover:scale-105 transition-all duration-700" />
+                        <div class="absolute inset-0 bg-gradient-to-t from-brand-bg via-brand-bg/20 to-transparent"></div>
+                    </div>
+                </div>
+                <div class="col-span-1 md:col-span-7 anim-el delay-100">
+                    <h2 class="text-xs font-bold tracking-[0.3em] text-brand-purple uppercase mb-4">The Architect</h2>
+                    <h3 class="text-4xl md:text-5xl font-display font-extrabold leading-tight mb-8">Engineering for <span class="text-gradient-amber">Impact.</span></h3>
+                    
+                    <div class="glass p-8 md:p-10 rounded-3xl border-l-4 border-brand-purple relative overflow-hidden">
+                        <i class="fa-solid fa-quote-right absolute -right-4 -bottom-4 text-8xl text-brand-purple/10"></i>
+                        <p class="text-lg md:text-xl text-brand-text leading-relaxed font-light relative z-10">
+                            I am a Jamaican Creative Director, System Architect, and Founder of Final Render Animation Studio, with over seven years of experience as an industry coach in Animation and Game Development.
+                        </p>
+                        <p class="text-lg md:text-xl text-brand-text leading-relaxed font-light mt-4 relative z-10">
+                            Currently finishing my teaching degree (2027), I developed the "Pedagogy of the Lean Code"—an architectural framework that prioritizes pedagogical intent over expensive hardware. My work focuses on proving that we can build advanced, AI-driven educational tools without massive Silicon Valley budgets.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Slide 3: The Myth vs Reality -->
+        <section class="slide">
+            <div class="max-w-7xl mx-auto w-full h-full flex flex-col justify-center">
+                <div class="anim-el mb-12 text-center md:text-left">
+                    <h2 class="text-xs font-bold tracking-[0.3em] text-brand-amber uppercase mb-4">The Stagnation Point</h2>
+                    <h3 class="text-4xl md:text-5xl font-display font-extrabold text-white">The Billion-Dollar <span class="text-brand-purple">Myth.</span></h3>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-6xl">
+                    <div class="anim-el delay-100 glass p-10 rounded-3xl highlight-box" style="--tw-shadow-color: #ef4444; box-shadow: inset 4px 0 0 var(--tw-shadow-color);">
+                        <i class="fa-solid fa-server text-4xl text-red-500 mb-6 block"></i>
+                        <h4 class="text-2xl font-bold text-white mb-4">The Fallacy</h4>
+                        <p class="text-base text-brand-muted leading-relaxed font-light">
+                            In the Global South, the deployment of high-fidelity AI in education is often stalled by a pervasive myth: the assumption that true innovation strictly requires billion-dollar infrastructures, massive server farms, and exorbitant tech funding.
+                        </p>
+                    </div>
+                    <div class="anim-el delay-200 glass p-10 rounded-3xl highlight-box">
+                        <i class="fa-solid fa-lightbulb text-4xl text-brand-amber mb-6 block"></i>
+                        <h4 class="text-2xl font-bold text-white mb-4">The Reality</h4>
+                        <p class="text-base text-brand-muted leading-relaxed font-light">
+                            We are pricing ourselves out of our own progress. We can deliver premium, AI-driven academic outcomes on a minimal budget if we simply shift our focus from scaling hardware to optimizing the architecture.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Slide 4: The Framework -->
+        <section class="slide items-center text-center">
+            <div class="max-w-5xl relative z-10 w-full mx-auto my-auto">
+                <div class="anim-el text-brand-purple text-6xl mb-6"><i class="fa-solid fa-code-branch"></i></div>
+                <h2 class="anim-el delay-100 font-display text-4xl md:text-5xl font-bold leading-tight mb-8 text-white">
+                    The Framework: <br><span class="text-gradient">Pedagogy of the Lean Code</span>
+                </h2>
+                
+                <div class="glass p-10 md:p-12 rounded-3xl border border-brand-purple/20 anim-el delay-200 bg-gradient-to-br from-brand-purple/5 to-transparent text-center max-w-4xl mx-auto shadow-2xl">
+                    <p class="text-2xl text-brand-text font-light leading-relaxed">
+                        Developed at Final Render Animation Studio, this framework represents a radical shift in software engineering for developing nations. 
+                    </p>
+                    <hr class="border-white/10 my-8 w-1/2 mx-auto">
+                    <p class="text-xl text-brand-amber font-semibold leading-relaxed">
+                        We deliberately prioritize <span class="text-white">pedagogical intent</span> over <span class="text-white">expensive hardware.</span> 
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Slide 5: Strategic Cloud Leverage -->
+        <section class="slide items-center text-center">
+            <div class="max-w-6xl relative z-10 w-full mx-auto my-auto">
+                <div class="anim-el text-brand-amber text-6xl mb-6"><i class="fa-solid fa-cloud-bolt"></i></div>
+                <h2 class="anim-el delay-100 font-display text-4xl md:text-5xl font-bold leading-tight mb-8 text-white">
+                    Smarter Budgets via <span class="text-gradient-amber">Strategic Outsourcing</span>
+                </h2>
+                <p class="anim-el delay-200 text-xl text-brand-muted font-light mb-12 max-w-4xl mx-auto leading-relaxed">
+                    A major trap in Jamaican tech development is the belief that we must own and build all server infrastructure in-house from day one. In-house is slow, resource-heavy, and results in bloated, exorbitant bids. 
+                </p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 anim-el delay-300">
+                    <div class="glass p-8 rounded-2xl border border-white/10 text-left highlight-box">
+                        <i class="fa-solid fa-server text-3xl text-brand-purple mb-4"></i>
+                        <h4 class="font-bold text-white mb-2 text-xl">The Optimal Cloud Shift</h4>
+                        <p class="text-base text-brand-muted font-light">The leanest way is to leverage specialized, external cloud providers for server maintenance. We get peak performance instantly, drastically cutting upfront development costs.</p>
+                    </div>
+                    <div class="glass p-8 rounded-2xl border border-white/10 text-left highlight-box">
+                        <i class="fa-solid fa-chart-line text-3xl text-brand-purple mb-4"></i>
+                        <h4 class="font-bold text-white mb-2 text-xl">Sovereignty Over Time</h4>
+                        <p class="text-base text-brand-muted font-light">By lowering the barrier to entry through smart outsourcing, we create a much healthier profit margin. This sustainable revenue allows us to buy into our own sovereign infrastructure over time, rather than demanding millions upfront.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Slide 6: Appropriate Technology -->
+        <section class="slide">
+            <div class="max-w-7xl mx-auto w-full grid grid-cols-1 md:grid-cols-12 gap-12 items-center h-full">
+                <div class="col-span-1 md:col-span-6 anim-el">
+                    <h2 class="text-xs font-bold tracking-[0.3em] text-brand-amber uppercase mb-4">The Methodology</h2>
+                    <h3 class="text-4xl md:text-5xl font-display font-extrabold leading-tight mb-8">Building <span class="text-brand-purple">Appropriate Technology.</span></h3>
+                    <p class="text-lg text-brand-muted leading-relaxed mb-6 font-light">
+                        We must acknowledge a hard truth: we do not have the same hardware access as first-world nations. We cannot simply copy-paste Silicon Valley software and expect it to run optimally here.
+                    </p>
+                    <p class="text-lg text-brand-muted leading-relaxed font-light">
+                        "Appropriate Technology" means creating solutions that bear our exact hardware limitations in mind. It performs as smoothly as first-world tech because of <em>how</em> it is delivered, not just because it exists.
+                    </p>
+                </div>
+                <div class="col-span-1 md:col-span-6 anim-el delay-100 relative">
+                    <div class="glass p-10 rounded-[3rem] border border-brand-purple/20 bg-gradient-to-br from-brand-purple/5 to-transparent relative overflow-hidden">
+                        <i class="fa-solid fa-scale-balanced absolute -bottom-10 -right-10 text-[12rem] text-brand-purple/10"></i>
+                        <h4 class="text-2xl font-bold text-white mb-6">Actionable Insights:</h4>
+                        <ul class="space-y-6">
+                            <li class="flex items-start gap-4">
+                                <div class="w-10 h-10 rounded-full bg-brand-purple/20 flex items-center justify-center shrink-0 mt-1"><i class="fa-solid fa-arrow-right text-brand-purple"></i></div>
+                                <div>
+                                    <strong class="text-white block text-lg">Focus on the Delivery</strong>
+                                    <span class="text-sm text-brand-muted font-light">The magic isn't that the AI exists; it's using clever data routing to make it run flawlessly on an outdated classroom machine.</span>
+                                </div>
+                            </li>
+                            <li class="flex items-start gap-4">
+                                <div class="w-10 h-10 rounded-full bg-brand-purple/20 flex items-center justify-center shrink-0 mt-1"><i class="fa-solid fa-arrow-right text-brand-purple"></i></div>
+                                <div>
+                                    <strong class="text-white block text-lg">Bridge the Gap</strong>
+                                    <span class="text-sm text-brand-muted font-light">AI should invisibly remove friction between teaching and learning, never acting as a heavy distraction that requires constant tech support.</span>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Slide 7: Proof 1 (Lecture Scribe Pro) -->
+        <section class="slide">
+            <div class="max-w-7xl mx-auto w-full h-full flex flex-col justify-center">
+                <div class="anim-el mb-12 text-center md:text-left">
+                    <h2 class="text-xs font-bold tracking-[0.3em] text-brand-purple uppercase mb-4">Case Study 01</h2>
+                    <h3 class="text-4xl md:text-5xl font-display font-extrabold text-white">Lecture Scribe <span class="text-gradient">Pro.</span></h3>
+                </div>
+                
+                <div class="glass p-10 md:p-12 rounded-[3rem] border-l-4 border-brand-purple anim-el delay-100 relative overflow-hidden">
+                    <i class="fa-solid fa-bolt absolute top-10 right-12 text-6xl text-brand-purple/20"></i>
+                    <div class="max-w-5xl">
+                        <h4 class="text-2xl font-bold text-brand-amber mb-4">A Student-Focused AI Synthesis Engine</h4>
+                        <p class="text-xl text-brand-muted leading-relaxed font-light mb-8 max-w-3xl">
+                            A masterclass in optimal delivery. It records audio locally via IndexedDB, allows the AI to transcribe the lecture into study notes, and immediately purges the files.
+                        </p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-black/30 p-6 rounded-2xl border border-white/5">
+                            <div>
+                                <strong class="text-white block mb-2 text-lg"><i class="fa-solid fa-shield-halved text-brand-purple mr-2"></i> Eradicating the Privacy Fear</strong>
+                                <p class="text-sm text-brand-text font-light leading-relaxed">Lecturers often refuse recordings fearing voice cloning or out-of-context quotes. By instantly shredding the audio post-transcription, we guarantee zero audio retention while providing students the ultimate study tool.</p>
+                            </div>
+                            <div>
+                                <strong class="text-white block mb-2 text-lg"><i class="fa-solid fa-server text-brand-amber mr-2"></i> Zero Recurring Expenses</strong>
+                                <p class="text-sm text-brand-text font-light leading-relaxed">Data routes directly from the user's browser to the AI. Students provide their own generous free-tier API tokens (like Gemini), reducing our server hosting costs to absolute zero.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Slide 8: Proof 2 (Build 5E) -->
+        <section class="slide">
+            <div class="max-w-7xl mx-auto w-full h-full flex flex-col justify-center">
+                <div class="anim-el mb-8 text-center md:text-left">
+                    <h2 class="text-xs font-bold tracking-[0.3em] text-brand-amber uppercase mb-4">Case Study 02</h2>
+                    <h3 class="text-4xl md:text-5xl font-display font-extrabold text-white">Build 5E <span class="text-gradient-amber">Platform.</span></h3>
+                </div>
+                
+                <div class="glass p-10 md:p-12 rounded-[3rem] border-l-4 border-brand-amber anim-el delay-100 relative overflow-hidden bg-gradient-to-r from-brand-amber/5 to-transparent">
+                    <i class="fa-solid fa-shapes absolute top-10 right-12 text-6xl text-brand-amber/20"></i>
+                    <div class="max-w-4xl">
+                        <div class="flex items-center gap-4 mb-4">
+                            <h4 class="text-2xl font-bold text-brand-purple">An Educator's Tool for Lesson Planning</h4>
+                            <a href="https://build5e.c3o.click" target="_blank" class="px-4 py-1.5 rounded-full bg-brand-purple/20 text-brand-purple text-xs font-bold uppercase tracking-widest border border-brand-purple/50 hover:bg-brand-purple hover:text-white transition-colors"><i class="fa-solid fa-link mr-2"></i> build5e.c3o.click</a>
+                        </div>
+                        <p class="text-xl text-brand-muted leading-relaxed font-light mb-8">
+                            A highly complex AI pedagogical tool developed entirely through Lean Code principles. It removes the cognitive load from the teacher by seamlessly guiding them through the proven 5E instructional model.
+                        </p>
+                        <div class="bg-black/30 p-6 rounded-2xl border border-white/5">
+                            <strong class="text-white block mb-2 text-lg">The Lean Result:</strong>
+                            <p class="text-sm text-brand-text font-light leading-relaxed">
+                                Unlike Lecture Scribe, we <em>do</em> host the server and provide the AI access here. However, because the AI is strictly constrained to simply generating structured lesson plans, the compute cost remains microscopic. We deliver high-fidelity outputs without the crushing enterprise cloud overhead.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Slide 9: The Forge Philanthropic Venture (WASM) -->
+        <section class="slide items-center">
+            <div class="max-w-7xl relative z-10 w-full mx-auto my-auto grid grid-cols-1 md:grid-cols-12 gap-12 items-center">
+                
+                <div class="col-span-1 md:col-span-6 anim-el">
+                    <h2 class="text-xs font-bold tracking-[0.3em] text-brand-amber uppercase mb-4">Philanthropic Brand</h2>
+                    <h3 class="text-4xl md:text-5xl font-display font-extrabold leading-tight mb-6 text-white">
+                        The <span class="text-brand-purple">Forge</span> Venture.
+                    </h3>
+                    <p class="text-lg text-brand-muted font-light mb-6 leading-relaxed">
+                        Our mission is to foster technological sovereignty by proving what open-source, lean engineering can achieve in the Caribbean. The crown jewel of this initiative is the <strong>WASM Video Editor</strong>.
+                    </p>
+                    <div class="bg-black/40 p-6 rounded-2xl border border-white/5 mb-6">
+                        <strong class="text-brand-amber block mb-2"><i class="fa-solid fa-trophy mr-2"></i> <span class="font-extrabold text-white text-xl">Global #1 Browser Editor</span></strong>
+                        <p class="text-sm text-brand-text font-light leading-relaxed">
+                            Currently the <strong class="text-brand-amber">#1 browser-based video editor globally</strong>. No other web editor operates at this professional level. It is modular and features a complete node-graph CFX editing system—rivaling desktop titans like DaVinci Resolve's Fusion.
+                        </p>
+                    </div>
+                    <p class="text-sm text-brand-purple font-bold tracking-widest uppercase">Proving world-class tech doesn't require a Silicon Valley zip code.</p>
+                </div>
+
+                <div class="col-span-1 md:col-span-6 anim-el delay-100 h-full flex flex-col justify-center">
+                    <div class="relative w-full rounded-3xl overflow-hidden border border-white/10 shadow-[0_0_50px_rgba(124,58,237,0.3)] bg-black/60 backdrop-blur-md p-6 flex items-center justify-center">
+                        <img src="https://github.com/Cleo876/wasm-video-editor/blob/main/IMG's/Banners/Official%20Poster_WASM%20Video%20Editor.jpg?raw=true" alt="WASM Video Editor Poster" class="w-full max-h-[60vh] object-contain filter brightness-90 hover:brightness-110 transition-all duration-700 rounded-xl" />
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Slide 10: The Comparative Note (AI Titans) -->
+        <section class="slide items-center text-center">
+            <div class="max-w-6xl relative z-10 w-full mx-auto my-auto">
+                <div class="anim-el text-brand-amber text-6xl mb-6"><i class="fa-solid fa-globe"></i></div>
+                <h2 class="anim-el delay-100 font-display text-4xl md:text-5xl font-bold leading-tight mb-8 text-white">
+                    The Global Standard of <span class="text-gradient-amber">Delivery</span>
+                </h2>
+                <p class="anim-el delay-200 text-xl text-brand-muted font-light mb-8 max-w-4xl mx-auto leading-relaxed">
+                    Look at the global AI titans. Their biggest breakthrough over the last year hasn't just been building larger data centers; it has been engineering smarter distribution.
+                </p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 anim-el delay-300 mb-8">
+                    <!-- Token Quantization Card -->
+                    <div class="glass p-6 rounded-2xl border border-white/10 text-center flex flex-col relative overflow-hidden bg-gradient-to-b from-transparent to-brand-purple/10">
+                        <div class="mb-2">
+                            <h4 class="font-bold text-white mb-2">Token Quantization</h4>
+                            <p class="text-sm text-brand-muted font-light mb-2">Compressing massive models to run on smaller, cheaper hardware.</p>
+                        </div>
+                        <div class="mt-auto">
+                            <div class="border-t border-white/10 pt-2 mb-2">
+                                <span class="block text-[10px] text-brand-purple uppercase tracking-widest font-bold mb-1">Model Size Reduction</span>
+                                <p class="text-[11px] text-brand-muted font-light leading-tight mb-2">Quantization from 16-bit to 4-bit reduces VRAM requirements by over 70%, democratizing access to high-fidelity AI.</p>
+                            </div>
+                            <div class="chart-container w-full h-28 relative">
+                                <canvas id="quantizationChart"></canvas>
+                            </div>
+                            <p class="text-[9px] text-brand-muted/60 mt-1 italic text-right">Source: Impact of Low-Bit Quantization on LLM Memory Footprint (2024)</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Edge Computing Card with Chart -->
+                    <div class="glass p-6 rounded-2xl border border-white/10 text-center flex flex-col relative overflow-hidden bg-gradient-to-b from-transparent to-red-900/10">
+                        <div class="mb-2">
+                            <h4 class="font-bold text-white mb-2">Edge Computing</h4>
+                            <p class="text-sm text-brand-muted font-light mb-2">Pushing AI processing locally to bypass massive cloud fees.</p>
+                        </div>
+                        <div class="mt-auto">
+                            <div class="border-t border-white/10 pt-2 mb-2">
+                                <span class="block text-[10px] text-red-400 uppercase tracking-widest font-bold mb-1">The Hardware Hallucination Gap</span>
+                                <p class="text-[11px] text-brand-muted font-light leading-tight mb-2">Constrained hardware inherently causes computational errors in LLMs. Strategic cloud collaboration is a technical necessity to maintain accuracy.</p>
+                            </div>
+                            <div class="chart-container w-full h-28 relative">
+                                <canvas id="hallucinationChart"></canvas>
+                            </div>
+                            <p class="text-[9px] text-brand-muted/60 mt-1 italic text-right">Source: Comparative Analysis of LLM Hallucinations on Edge vs. Cloud (2024)</p>
+                        </div>
+                    </div>
+
+                    <!-- API Tiering Card -->
+                    <div class="glass p-6 rounded-2xl border border-white/10 text-center border-b-2 border-brand-amber flex flex-col relative overflow-hidden bg-gradient-to-b from-transparent to-brand-amber/10">
+                        <div class="mb-2">
+                            <h4 class="font-bold text-brand-amber mb-2">API Tiering</h4>
+                            <p class="text-sm text-brand-muted font-light mb-2">Using modular intelligence so you only pay for the exact compute you need.</p>
+                        </div>
+                        <div class="mt-auto">
+                            <div class="border-t border-white/10 pt-2 mb-2">
+                                <span class="block text-[10px] text-brand-amber uppercase tracking-widest font-bold mb-1">Cost-to-Compute Optimization</span>
+                                <p class="text-[11px] text-brand-muted font-light leading-tight mb-2">Routing simple tasks to smaller models (e.g., Gemini Flash) vs complex tasks to large models (e.g., Gemini Pro) cuts API expenses dramatically.</p>
+                            </div>
+                            <div class="chart-container w-full h-28 relative">
+                                <canvas id="apiTieringChart"></canvas>
+                            </div>
+                            <p class="text-[9px] text-brand-muted/60 mt-1 italic text-right">Source: Dynamic API Routing Strategies for Cost-Efficient LLM Deployment (2024)</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass inline-block px-10 py-5 rounded-full border border-brand-purple/30 anim-el delay-400">
+                    <p class="text-lg text-brand-text font-semibold">We are taking this exact "Smart Delivery" playbook and applying it strictly to Caribbean educational workflows.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Slide 11: Outro / The Ultimate Truth -->
+        <section class="slide items-center text-center">
+            <div class="absolute inset-0 bg-brand-bg opacity-90 z-0"></div>
+            
+            <div class="max-w-6xl mx-auto w-full anim-el relative z-10 my-auto">
+                <div class="w-24 h-24 mx-auto bg-gradient-to-br from-brand-purple to-brand-darkPurple rounded-3xl flex items-center justify-center text-4xl text-white shadow-[0_0_50px_rgba(124,58,237,0.4)] mb-12">
+                    <i class="fa-solid fa-brain"></i>
+                </div>
+                
+                <h2 class="text-5xl md:text-6xl font-display font-extrabold text-white mb-12 leading-tight">
+                    "The most powerful innovation isn't the biggest AI... <br>
+                    <span class="text-gradient-amber">it's the smartest delivery of it.</span>"
+                </h2>
+                
+                <div class="glass inline-flex flex-col items-center px-12 py-6 rounded-3xl border border-white/10 mx-auto">
+                    <h3 class="text-xl font-bold text-white mb-1">Cleon Williams</h3>
+                    <p class="text-sm text-brand-purple font-bold tracking-widest uppercase">Final Render Animation Studio</p>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const progress = document.getElementById('progress');
+        const slideCounter = document.getElementById('current-slide-num');
+        
+        // Chart variables
+        let hallucinationChartInstance = null;
+        let quantizationChartInstance = null;
+        let apiTieringChartInstance = null;
+        let chartInitialized = false;
+
+        function initCharts() {
+            if (chartInitialized) {
+                // Re-trigger animations
+                if (hallucinationChartInstance) {
+                    hallucinationChartInstance.data.datasets[0].data = [0, 0];
+                    hallucinationChartInstance.update({duration: 0});
+                    setTimeout(() => {
+                        hallucinationChartInstance.data.datasets[0].data = [12, 38]; 
+                        hallucinationChartInstance.update({duration: 1500, easing: 'easeOutQuart'});
+                    }, 300);
+                }
+                if (quantizationChartInstance) {
+                    quantizationChartInstance.data.datasets[0].data = [0, 0];
+                    quantizationChartInstance.update({duration: 0});
+                    setTimeout(() => {
+                        quantizationChartInstance.data.datasets[0].data = [100, 25]; // e.g., 100% VRAM vs 25% VRAM
+                        quantizationChartInstance.update({duration: 1500, easing: 'easeOutQuart'});
+                    }, 300);
+                }
+                if (apiTieringChartInstance) {
+                    apiTieringChartInstance.data.datasets[0].data = [0, 0];
+                    apiTieringChartInstance.update({duration: 0});
+                    setTimeout(() => {
+                        apiTieringChartInstance.data.datasets[0].data = [100, 15]; // Cost comparison
+                        apiTieringChartInstance.update({duration: 1500, easing: 'easeOutQuart'});
+                    }, 300);
+                }
+                return;
+            }
+
+            // Common Options for minimal, clean charts
+            const commonOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: { duration: 1500, easing: 'easeOutQuart' },
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { display: false, drawBorder: false }, ticks: { color: '#f8fafc', font: { family: "'Plus Jakarta Sans', sans-serif", size: 9, weight: 'bold' } } }
+                }
+            };
+
+            // 1. Hallucination Chart
+            const ctxHallucination = document.getElementById('hallucinationChart');
+            if (ctxHallucination) {
+                hallucinationChartInstance = new Chart(ctxHallucination, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Newer Models', 'Older Models'],
+                        datasets: [{
+                            data: [0, 0],
+                            backgroundColor: ['rgba(124, 58, 237, 0.7)', 'rgba(239, 68, 68, 0.7)'],
+                            borderColor: ['rgb(124, 58, 237)', 'rgb(239, 68, 68)'],
+                            borderWidth: 1, borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        ...commonOptions,
+                        plugins: { ...commonOptions.plugins, tooltip: { callbacks: { label: (c) => c.parsed.y + '% Rate' } } },
+                        scales: {
+                            ...commonOptions.scales,
+                            y: { beginAtZero: true, max: 50, grid: { color: 'rgba(255, 255, 255, 0.05)', drawBorder: false }, ticks: { color: '#94a3b8', font: { size: 9 }, callback: (v) => v + '%' } }
+                        }
+                    }
+                });
+            }
+
+            // 2. Quantization Chart (VRAM Usage)
+            const ctxQuantization = document.getElementById('quantizationChart');
+            if (ctxQuantization) {
+                quantizationChartInstance = new Chart(ctxQuantization, {
+                    type: 'bar',
+                    data: {
+                        labels: ['16-Bit', '4-Bit Quant'],
+                        datasets: [{
+                            data: [0, 0],
+                            backgroundColor: ['rgba(148, 163, 184, 0.7)', 'rgba(124, 58, 237, 0.7)'], // Gray vs Brand Purple
+                            borderColor: ['rgb(148, 163, 184)', 'rgb(124, 58, 237)'],
+                            borderWidth: 1, borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        ...commonOptions,
+                        plugins: { ...commonOptions.plugins, tooltip: { callbacks: { label: (c) => c.parsed.y + 'GB VRAM' } } },
+                        scales: {
+                            ...commonOptions.scales,
+                            y: { beginAtZero: true, max: 100, grid: { color: 'rgba(255, 255, 255, 0.05)', drawBorder: false }, ticks: { color: '#94a3b8', font: { size: 9 }, callback: (v) => v + '%' } } // Showing relative percentage drop
+                        }
+                    }
+                });
+            }
+
+            // 3. API Tiering Chart (Cost Comparison)
+            const ctxApiTiering = document.getElementById('apiTieringChart');
+            if (ctxApiTiering) {
+                apiTieringChartInstance = new Chart(ctxApiTiering, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Static API', 'Tiered API'],
+                        datasets: [{
+                            data: [0, 0],
+                            backgroundColor: ['rgba(148, 163, 184, 0.7)', 'rgba(245, 158, 11, 0.7)'], // Gray vs Brand Amber
+                            borderColor: ['rgb(148, 163, 184)', 'rgb(245, 158, 11)'],
+                            borderWidth: 1, borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        ...commonOptions,
+                        plugins: { ...commonOptions.plugins, tooltip: { callbacks: { label: (c) => '$' + c.parsed.y + ' Cost' } } },
+                        scales: {
+                            ...commonOptions.scales,
+                            y: { beginAtZero: true, max: 100, grid: { color: 'rgba(255, 255, 255, 0.05)', drawBorder: false }, ticks: { color: '#94a3b8', font: { size: 9 }, callback: (v) => '$' + v } } // Representing cost indices
+                        }
+                    }
+                });
+            }
+            
+            chartInitialized = true;
+            
+            // Trigger the initial animations
+            setTimeout(() => {
+                if(hallucinationChartInstance) { hallucinationChartInstance.data.datasets[0].data = [12, 38]; hallucinationChartInstance.update(); }
+                if(quantizationChartInstance) { quantizationChartInstance.data.datasets[0].data = [100, 25]; quantizationChartInstance.update(); }
+                if(apiTieringChartInstance) { apiTieringChartInstance.data.datasets[0].data = [100, 15]; apiTieringChartInstance.update(); }
+            }, 300);
+        }
+
+        function updateSlide() {
+            slides.forEach((slide, index) => { 
+                if (index === currentSlide) {
+                    slide.classList.add('active');
+                    // Retrigger CSS animations
+                    const anims = slide.querySelectorAll('.anim-el');
+                    anims.forEach(el => {
+                        el.style.animation = 'none';
+                        el.offsetHeight; /* trigger reflow */
+                        el.style.animation = null; 
+                    });
+                    
+                    // If we are on slide 10 (index 9), trigger the charts
+                    if (index === 9) {
+                        setTimeout(initCharts, 400); 
+                    }
+                } else {
+                    slide.classList.remove('active');
+                }
+            });
+
+            if (progress) progress.style.width = ((currentSlide) / (slides.length - 1)) * 100 + '%';
+            if (slideCounter) slideCounter.innerText = currentSlide + 1;
+        }
+
+        function nextSlide() { 
+            if (currentSlide < slides.length - 1) { currentSlide++; updateSlide(); } 
+        }
+        function prevSlide() { 
+            if (currentSlide > 0) { currentSlide--; updateSlide(); } 
+        }
+
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.warn(`Error attempting to enable full-screen: ${err.message}`);
+                });
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+
+        document.addEventListener('fullscreenchange', () => {
+            const icon = document.getElementById('fs-icon');
+            const text = document.getElementById('fs-text');
+            if (document.fullscreenElement) {
+                document.body.classList.add('theater-mode');
+                if(icon) { icon.classList.remove('fa-expand'); icon.classList.add('fa-compress'); }
+                if(text) text.innerText = 'Exit Theater';
+            } else {
+                document.body.classList.remove('theater-mode');
+                if(icon) { icon.classList.remove('fa-compress'); icon.classList.add('fa-expand'); }
+                if(text) text.innerText = 'Theater Mode';
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown' || e.key === 'Enter') nextSlide();
+            if (e.key === 'ArrowLeft' || e.key === 'PageUp') prevSlide();
+            if (e.key.toLowerCase() === 'f') toggleFullScreen();
+        });
+
+        window.addEventListener('load', () => {
+            document.getElementById('total-slides').innerText = slides.length;
+            updateSlide();
+        });
+    </script>
+</body>
+</html>
